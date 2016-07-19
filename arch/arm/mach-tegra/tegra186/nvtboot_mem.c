@@ -8,6 +8,7 @@
 #include <fdtdec.h>
 #include <asm/arch/tegra.h>
 #include <asm/armv8/mmu.h>
+#include "../dt-edit.h"
 
 #define SZ_4G 0x100000000ULL
 
@@ -170,4 +171,9 @@ int dram_init_banksize(void)
 ulong board_get_usable_ram_top(ulong total_size)
 {
 	return ram_top;
+}
+
+void *fdt_copy_get_blob_src_default(void)
+{
+	return (void *)nvtboot_boot_x0;
 }
