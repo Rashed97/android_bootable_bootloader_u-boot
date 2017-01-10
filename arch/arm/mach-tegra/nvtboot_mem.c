@@ -8,7 +8,7 @@
 #include <fdtdec.h>
 #include <asm/arch/tegra.h>
 #include <asm/armv8/mmu.h>
-#include "../dt-edit.h"
+#include "dt-edit.h"
 
 #define SZ_4G 0x100000000ULL
 
