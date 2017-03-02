@@ -5,12 +5,34 @@
 
 #include <stdlib.h>
 #include <common.h>
+#include <linux/ctype.h>
 #include <fdt_support.h>
 #include <fdtdec.h>
 #include <asm/arch/tegra.h>
 #include <asm/armv8/mmu.h>
 
 extern unsigned long nvtboot_boot_x0;
+
+char *strstrip(char *s)
+{
+    size_t size;
+    char *end;
+
+    size = strlen(s);
+
+    if (!size)
+        return s;
+
+    end = s + size - 1;
+    while (end >= s && isblank(*end))
+        end--;
+    *(end + 1) = '\0';
+
+    while (*s && isblank(*s))
+        s++;
+
+    return s;
+}
 
 /*
  * The following few functions run late during the boot process and dynamically
@@ -235,7 +257,7 @@ static void set_calculated_env_vars(void)
 	dump_ram_banks();
 #endif
 
-	reserve_ram(nvtboot_boot_x0, fdt_totalsize(nvtboot_boot_x0));
+	reserve_ram(cboot_boot_x0, fdt_totalsize(cboot_boot_x0));
 
 #ifdef DEBUG
 	printf("RAM after reserving cboot DTB:\n");
@@ -366,7 +388,7 @@ static int parse_bootargs(void)
 		/* get actual hex address portion */
 		start = strtok(NULL, " ");
 		debug("%s: %s=%s\n", __func__, target, start);
-		setenv("nvdumper_reserved", start);
+		env_set("nvdumper_reserved", start);
 	} else {				/* s == NULL */
 		debug("%s: Failed to find %s in bootargs!\n", __func__, target);
 	}
@@ -388,7 +410,7 @@ static int parse_bootargs(void)
 		/* get actual hex address portion */
 		start = strtok(NULL, " ");
 		debug("%s: %s=%s\n", __func__, target, start);
-		setenv("lp0_vec", start);
+		env_set("lp0_vec", start);
 	} else {				/* s == NULL */
 		debug("%s: Failed to find %s in bootargs!\n", __func__, target);
 	}
@@ -397,6 +419,48 @@ static int parse_bootargs(void)
 	return 0;
 }
 #endif	/* T210 */
+
+static int set_cbootargs(void)
+{
+	const void *nvtboot_blob = (void *)nvtboot_boot_x0;
+	const void *prop;
+	char *bargs, *s;
+	int node, len, ret = 0;
+
+	/*
+	 * Save the bootargs passed in the DTB by the previous bootloader
+	 * (CBoot) to the env. (pointer in reg x0)
+	 */
+
+	debug("%s: nvtboot_blob = %p\n", __func__, nvtboot_blob);
+
+	node = fdt_path_offset(nvtboot_blob, "/chosen");
+	if (node < 0) {
+		pr_err("Can't find /chosen node in nvtboot DTB");
+		return node;
+	}
+	debug("%s: found 'chosen' node: %d\n", __func__, node);
+
+	prop = fdt_getprop(nvtboot_blob, node, "bootargs", &len);
+	if (!prop) {
+		pr_err("Can't find /chosen/bootargs property in nvtboot DTB");
+		return -ENOENT;
+	}
+	debug("%s: found 'bootargs' property, len =%d\n",  __func__, len);
+
+	/* CBoot seems to add trailing whitespace - strip it here */
+	s = strdup((char *)prop);
+	bargs = strstrip(s);
+	debug("%s: bootargs = %s!\n", __func__, bargs);
+
+        /* Set cbootargs to env for later use by extlinux files */
+	ret = env_set("cbootargs", bargs);
+	if (ret)
+		printf("Failed to set cbootargs from cboot DTB: %d\n", ret);
+
+	free(s);
+	return ret;
+}
 
 int nvtboot_init_late(void)
 {
@@ -414,6 +478,8 @@ int nvtboot_init_late(void)
 	/* Handle lp0_vec and nvdumper env vars */
 	parse_bootargs();
 #endif
+	/* Save CBoot bootargs to env */
+	set_cbootargs();
 
 	return 0;
 }

@@ -175,5 +175,5 @@ ulong board_get_usable_ram_top(ulong total_size)
 
 void *fdt_copy_get_blob_src_default(void)
 {
-	return (void *)nvtboot_boot_x0;
+	return (void *)cboot_boot_x0;
 }
