@@ -17,6 +17,7 @@
 /*-----------------------------------------------------------------------
  * Physical Memory Map
  */
+#define CONFIG_SYS_TEXT_BASE	0x80080000	/* chainloaded as faux kernel */
 
 /* Generic Interrupt Controller */
 #define CONFIG_GICV2

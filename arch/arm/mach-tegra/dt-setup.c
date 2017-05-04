@@ -20,9 +20,6 @@ int ft_system_setup(void *blob, bd_t *bd)
 #if defined(CONFIG_TEGRA124)
 		"nvidia,gk20a",
 #endif
-#if defined(CONFIG_TEGRA210)
-		"nvidia,gm20b",
-#endif
 	};
 	int i, ret;
 
@@ -37,9 +34,6 @@ int ft_system_setup(void *blob, bd_t *bd)
 	fdt_copy_env_proplist(blob);
 	fdt_del_env_nodelist(blob);
 	fdt_del_env_proplist(blob);
-#if defined(CONFIG_TEGRA210) && !defined(CONFIG_CPU_BL_IS_CBOOT)
-	ft_nvtboot(blob);
-#endif
 
 	return 0;
 }
